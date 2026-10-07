@@ -1,0 +1,58 @@
+services:
+
+  db:
+    image: postgres:16
+    container_name: notes-db
+
+    environment:
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: notes
+
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notes"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  backend:
+    image: notes-api
+    container_name: notes-backend
+
+    environment:
+      DATABASE_URL: postgres://notes:${DB_PASSWORD}@db:5432/notes
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    expose:
+      - "8000"
+
+
+  frontend:
+    image: notes-web
+    container_name: notes-frontend
+
+    expose:
+      - "80"
+
+
+  nginx:
+    image: notes-nginx
+    container_name: notes-nginx
+
+    depends_on:
+      - backend
+      - frontend
+
+    ports:
+      - "8443:8443"
+
+
+volumes:
+  db_data:
